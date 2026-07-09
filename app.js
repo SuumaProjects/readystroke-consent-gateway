@@ -1,13 +1,43 @@
 const CONFIG = {
   demo: {
     analyticsId: "G-Y6GL8XFY1Q",
-
-    // URL final de la app DEMO en Glide.
-    // El QR/enlace NO apunta directamente aquí, sino a la página de consentimiento.
-    // Después de aceptar o rechazar, redirigimos a esta URL.
     destinationUrl: "https://demo.readystroke.com",
+    privacyUrl: "https://readystroke.com/privacidad"
+  }
+};
 
-    privacyUrl: "https://readystroke.com/privacy"
+const TEXTS = {
+  es: {
+    htmlLang: "es",
+    pageTitle: "ReadyStroke | Consentimiento",
+    title: "Privacidad y analítica",
+    intro:
+      "Utilizamos cookies o tecnologías similares para obtener estadísticas de uso de esta app y mejorar la experiencia del jugador.",
+    choice:
+      "Puedes aceptar o rechazar la analítica. Si rechazas, podrás seguir usando la app normalmente.",
+    small:
+      "No usamos estos datos para publicidad personalizada ni para identificarte individualmente.",
+    accept: "Aceptar analítica",
+    reject: "Rechazar",
+    moreInfo: "Más información",
+    saved: "Preferencia guardada. Accediendo a ReadyStroke...",
+    entering: "Accediendo a ReadyStroke..."
+  },
+  en: {
+    htmlLang: "en",
+    pageTitle: "ReadyStroke | Consent",
+    title: "Privacy and analytics",
+    intro:
+      "We use cookies or similar technologies to obtain usage statistics for this app and improve the player experience.",
+    choice:
+      "You can accept or reject analytics. If you reject, you can continue using the app normally.",
+    small:
+      "We do not use this data for personalized advertising or to identify you individually.",
+    accept: "Accept analytics",
+    reject: "Reject",
+    moreInfo: "More information",
+    saved: "Preference saved. Opening ReadyStroke...",
+    entering: "Opening ReadyStroke..."
   }
 };
 
@@ -18,12 +48,33 @@ const params = new URLSearchParams(window.location.search);
 const club = params.get("club") || DEFAULT_CLUB;
 const config = CONFIG[club] || CONFIG[DEFAULT_CLUB];
 
+const browserLanguage = navigator.language || navigator.userLanguage || "en";
+const language = browserLanguage.toLowerCase().startsWith("es") ? "es" : "en";
+const t = TEXTS[language];
+
 const consentKey = `readystroke_analytics_consent_${club}`;
 
+const title = document.getElementById("title");
+const introText = document.getElementById("introText");
+const choiceText = document.getElementById("choiceText");
+const smallText = document.getElementById("smallText");
 const acceptBtn = document.getElementById("acceptBtn");
 const rejectBtn = document.getElementById("rejectBtn");
 const privacyLink = document.getElementById("privacyLink");
 const statusMessage = document.getElementById("statusMessage");
+
+function applyLanguage() {
+  document.documentElement.lang = t.htmlLang;
+  document.title = t.pageTitle;
+
+  if (title) title.textContent = t.title;
+  if (introText) introText.textContent = t.intro;
+  if (choiceText) choiceText.textContent = t.choice;
+  if (smallText) smallText.textContent = t.small;
+  if (acceptBtn) acceptBtn.textContent = t.accept;
+  if (rejectBtn) rejectBtn.textContent = t.reject;
+  if (privacyLink) privacyLink.textContent = t.moreInfo;
+}
 
 if (privacyLink) {
   privacyLink.href = config.privacyUrl;
@@ -90,6 +141,7 @@ function trackEvent(eventName, eventParams = {}) {
 
   window.gtag("event", eventName, {
     club,
+    language,
     ...getUtmParams(),
     ...eventParams
   });
@@ -109,9 +161,10 @@ function handleAccept() {
 
   localStorage.setItem(consentKey, "accepted");
   localStorage.setItem(`${consentKey}_date`, new Date().toISOString());
+  localStorage.setItem(`${consentKey}_language`, language);
 
   if (statusMessage) {
-    statusMessage.textContent = "Preferencia guardada. Accediendo a ReadyStroke...";
+    statusMessage.textContent = t.saved;
   }
 
   loadGoogleAnalytics(() => {
@@ -132,20 +185,23 @@ function handleReject() {
 
   localStorage.setItem(consentKey, "rejected");
   localStorage.setItem(`${consentKey}_date`, new Date().toISOString());
+  localStorage.setItem(`${consentKey}_language`, language);
 
   if (statusMessage) {
-    statusMessage.textContent = "Preferencia guardada. Accediendo a ReadyStroke...";
+    statusMessage.textContent = t.saved;
   }
 
   setTimeout(redirectToApp, REDIRECT_DELAY_MS);
 }
 
 function init() {
+  applyLanguage();
+
   const existingConsent = localStorage.getItem(consentKey);
 
   if (existingConsent === "accepted") {
     if (statusMessage) {
-      statusMessage.textContent = "Accediendo a ReadyStroke...";
+      statusMessage.textContent = t.entering;
     }
 
     loadGoogleAnalytics(() => {
@@ -161,7 +217,7 @@ function init() {
 
   if (existingConsent === "rejected") {
     if (statusMessage) {
-      statusMessage.textContent = "Accediendo a ReadyStroke...";
+      statusMessage.textContent = t.entering;
     }
 
     setTimeout(redirectToApp, 300);
