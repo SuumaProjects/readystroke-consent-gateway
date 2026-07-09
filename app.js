@@ -1,7 +1,13 @@
 const CONFIG = {
   demo: {
     analyticsId: "G-Y6GL8XFY1Q",
+
+    // IMPORTANTE:
+    // demo.readystroke.com será la URL pública de entrada y consentimiento.
+    // Por eso el destino final NO puede ser demo.readystroke.com,
+    // para evitar un bucle de redirección.
     destinationUrl: "https://ready-stroke-demo.glide.page",
+
     privacyUrl: "https://readystroke.com/privacy"
   }
 };
@@ -20,7 +26,9 @@ const rejectBtn = document.getElementById("rejectBtn");
 const privacyLink = document.getElementById("privacyLink");
 const statusMessage = document.getElementById("statusMessage");
 
-privacyLink.href = config.privacyUrl;
+if (privacyLink) {
+  privacyLink.href = config.privacyUrl;
+}
 
 function getUtmParams() {
   const utm = {};
@@ -57,15 +65,20 @@ function loadGoogleAnalytics(callback) {
     window.dataLayer.push(arguments);
   };
 
-  window.gtag("js", new Date());
-  window.gtag("config", config.analyticsId, {
-    anonymize_ip: true
-  });
-
   const script = document.createElement("script");
   script.async = true;
   script.src = `https://www.googletagmanager.com/gtag/js?id=${config.analyticsId}`;
-  script.onload = callback;
+
+  script.onload = () => {
+    window.gtag("js", new Date());
+
+    window.gtag("config", config.analyticsId, {
+      send_page_view: false
+    });
+
+    callback();
+  };
+
   script.onerror = callback;
 
   document.head.appendChild(script);
@@ -87,25 +100,43 @@ function redirectToApp() {
   window.location.href = buildDestinationUrl();
 }
 
+function setButtonsDisabled(disabled) {
+  if (acceptBtn) acceptBtn.disabled = disabled;
+  if (rejectBtn) rejectBtn.disabled = disabled;
+}
+
 function handleAccept() {
+  setButtonsDisabled(true);
+
   localStorage.setItem(consentKey, "accepted");
   localStorage.setItem(`${consentKey}_date`, new Date().toISOString());
 
-  statusMessage.textContent = "Preferencia guardada. Accediendo a ReadyStroke...";
+  if (statusMessage) {
+    statusMessage.textContent = "Preferencia guardada. Accediendo a ReadyStroke...";
+  }
 
   loadGoogleAnalytics(() => {
-    trackEvent("consent_accepted");
-    trackEvent("app_entry", { consent_status: "accepted" });
+    trackEvent("consent_accepted", {
+      consent_status: "accepted"
+    });
+
+    trackEvent("app_entry", {
+      consent_status: "accepted"
+    });
 
     setTimeout(redirectToApp, REDIRECT_DELAY_MS);
   });
 }
 
 function handleReject() {
+  setButtonsDisabled(true);
+
   localStorage.setItem(consentKey, "rejected");
   localStorage.setItem(`${consentKey}_date`, new Date().toISOString());
 
-  statusMessage.textContent = "Preferencia guardada. Accediendo a ReadyStroke...";
+  if (statusMessage) {
+    statusMessage.textContent = "Preferencia guardada. Accediendo a ReadyStroke...";
+  }
 
   setTimeout(redirectToApp, REDIRECT_DELAY_MS);
 }
@@ -114,20 +145,37 @@ function init() {
   const existingConsent = localStorage.getItem(consentKey);
 
   if (existingConsent === "accepted") {
+    if (statusMessage) {
+      statusMessage.textContent = "Accediendo a ReadyStroke...";
+    }
+
     loadGoogleAnalytics(() => {
-      trackEvent("app_entry", { consent_status: "accepted_returning" });
+      trackEvent("app_entry", {
+        consent_status: "accepted_returning"
+      });
+
       setTimeout(redirectToApp, REDIRECT_DELAY_MS);
     });
+
     return;
   }
 
   if (existingConsent === "rejected") {
+    if (statusMessage) {
+      statusMessage.textContent = "Accediendo a ReadyStroke...";
+    }
+
     setTimeout(redirectToApp, 300);
     return;
   }
 
-  acceptBtn.addEventListener("click", handleAccept);
-  rejectBtn.addEventListener("click", handleReject);
+  if (acceptBtn) {
+    acceptBtn.addEventListener("click", handleAccept);
+  }
+
+  if (rejectBtn) {
+    rejectBtn.addEventListener("click", handleReject);
+  }
 }
 
 init();
