@@ -2,11 +2,10 @@ const CONFIG = {
   demo: {
     analyticsId: "G-Y6GL8XFY1Q",
 
-    // IMPORTANTE:
-    // demo.readystroke.com será la URL pública de entrada y consentimiento.
-    // Por eso el destino final NO puede ser demo.readystroke.com,
-    // para evitar un bucle de redirección.
-    destinationUrl: "https://ready-stroke-demo.glide.page",
+    // URL final de la app DEMO en Glide.
+    // El QR/enlace NO apunta directamente aquí, sino a la página de consentimiento.
+    // Después de aceptar o rechazar, redirigimos a esta URL.
+    destinationUrl: "https://demo.readystroke.com",
 
     privacyUrl: "https://readystroke.com/privacy"
   }
